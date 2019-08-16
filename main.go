@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sort"
-	"text/tabwriter"
 	"time"
 )
 
@@ -189,14 +187,15 @@ var (
 	timeout     time.Duration
 	csv         bool
 	verbose     bool
-	multicloud  bool
-	azure       bool
-	aws         bool
+
+	multicloud bool
+	azure      bool
+	aws        bool
+	region     string
+
 	// TODO(jbd): Add payload options such as body size.
 
-	client  *http.Client // TODO(jbd): One client per worker?
-	inputs  chan input
-	outputs chan output
+	client *http.Client // TODO(jbd): One client per worker?
 )
 
 func main() {
@@ -206,12 +205,15 @@ func main() {
 	flag.DurationVar(&timeout, "t", time.Duration(0), "")
 	flag.BoolVar(&verbose, "v", false, "")
 	flag.BoolVar(&csv, "csv", false, "")
+
 	//add flag for multicloud
 	flag.BoolVar(&multicloud, "mc", false, "")
 	//add flag for azure
 	flag.BoolVar(&azure, "azure", false, "")
 	//add flag for aws
 	flag.BoolVar(&aws, "aws", false, "")
+
+	flag.StringVar(&region, "r", "", "")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -232,73 +234,28 @@ func main() {
 		endpoints = gcpendpoints //original gcp endpoints
 	}
 
+	if region != "" {
+		if _, found := endpoints[region]; !found {
+			fmt.Printf("region %q is not supported or does not exist\n", region)
+			os.Exit(1)
+		}
+	}
+
 	client = &http.Client{
 		Timeout: timeout,
 	}
 
-	go start()
-	inputs = make(chan input, concurrency)
-	outputs = make(chan output, number*len(endpoints))
-	for i := 0; i < number; i++ {
-		for r, e := range endpoints {
-			inputs <- input{region: r, endpoint: e}
-		}
+	w := &worker{}
+	go w.start()
+
+	switch {
+	case region != "":
+		w.reportRegion(region)
+	case top:
+		w.reportTop()
+	default:
+		w.reportAll()
 	}
-	close(inputs)
-	report()
-}
-
-func start() {
-	for worker := 0; worker < concurrency; worker++ {
-		go func() {
-			for m := range inputs {
-				m.HTTP()
-			}
-		}()
-	}
-}
-
-func report() {
-	m := make(map[string]output)
-	for i := 0; i < number*len(endpoints); i++ {
-		o := <-outputs
-
-		a := m[o.region]
-
-		a.region = o.region
-		a.durations = append(a.durations, o.durations[0])
-		a.errors += o.errors
-
-		m[o.region] = a
-	}
-	all := make([]output, 0, len(m))
-	for _, t := range m {
-		all = append(all, t)
-	}
-
-	// sort all by median duration.
-	sort.Slice(all, func(i, j int) bool {
-		return all[i].median() < all[j].median()
-	})
-
-	if top {
-		t := all[0].region
-		if t == "global" {
-			t = all[1].region
-		}
-		fmt.Print(t)
-		return
-	}
-
-	tr := tabwriter.NewWriter(os.Stdout, 3, 2, 2, ' ', 0)
-	for i, a := range all {
-		fmt.Fprintf(tr, "%2d.\t[%v]\t%v", i+1, a.region, a.median())
-		if a.errors > 0 {
-			fmt.Fprintf(tr, "\t(%d errors)", a.errors)
-		}
-		fmt.Fprintln(tr)
-	}
-	tr.Flush()
 }
 
 func usage() {
@@ -313,6 +270,7 @@ Options:
      By default 10; can't be negative.
 -c   Max number of requests to be made at any time.
      By default 10; can't be negative or zero.
+-r   Report latency for an individual region.
 -t   Timeout. By default, no timeout.
 
 

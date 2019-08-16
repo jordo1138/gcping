@@ -13,6 +13,7 @@ Options:
      By default 10; can't be negative.
 -c   Max number of requests to be made at any time.
      By default 10; can't be negative or zero.
+-r   Report latency for an individual region.
 -t   Timeout. By default, no timeout.
      Examples: "500ms", "1s", "1s500ms".
 -top If true, only the top (non-global) region is printed.
@@ -51,14 +52,24 @@ $ gcping
 21.  [asia-south1]              573.022571ms
 ```
 
+```
+$ gcping -r us-east1
+502.068712ms
+```
+
+```
+$ gcping -top
+us-west2
+```
+
 ## Installation
 
-* Linux 64-bit: https://storage.googleapis.com/gcping-release/gcping_linux_amd64_0.0.1
+* Linux 64-bit: https://storage.googleapis.com/gcping-release/gcping_linux_amd64_0.0.3
   ```
-  $ curl https://storage.googleapis.com/gcping-release/gcping_linux_amd64_0.0.1 > gcping && chmod +x gcping
+  $ curl https://storage.googleapis.com/gcping-release/gcping_linux_amd64_0.0.3 > gcping && chmod +x gcping
   ```
-* Mac 64-bit: https://storage.googleapis.com/gcping-release/gcping_darwin_amd64_0.0.1
-* Windows 64-bit: https://storage.googleapis.com/gcping-release/gcping_windows_amd64_0.0.1
+* Mac 64-bit: https://storage.googleapis.com/gcping-release/gcping_darwin_amd64_0.0.3
+* Windows 64-bit: https://storage.googleapis.com/gcping-release/gcping_windows_amd64_0.0.3
 
 Note: This is not an official Google product.
 
