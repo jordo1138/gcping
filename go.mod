@@ -2,4 +2,4 @@ module github.com/rakyll/gcping
 
 go 1.13
 
-require golang.org/dl v0.0.0-20190708215927-a23d87f20b66 // indirect
+require golang.org/dl v0.0.0-20190815200211-0d81d9315774 // indirect

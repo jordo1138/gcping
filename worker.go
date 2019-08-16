@@ -28,8 +28,8 @@ type input struct {
 	endpoint string
 }
 
-func (i *input) HTTP() {
-	i.benchmark(func() error {
+func (i *input) HTTP() output {
+	return i.benchmark(func() error {
 		req, _ := http.NewRequest("GET", i.endpoint, nil)
 		res, err := client.Do(req)
 		if err != nil {
